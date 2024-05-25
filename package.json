@@ -1,6 +1,6 @@
 {
   "name": "@morpho-labs/ethers-fallback-provider",
-  "version": "1.0.0",
+  "version": "1.2.0-beta.2",
   "description": "Package providing a fallback provider based on ethers-providers, adding more resilience.",
   "main": "lib/index.js",
   "files": [
@@ -11,7 +11,9 @@
     "lint": "eslint ./src ./test --fix",
     "test:watch": "jest --watch",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "set-registry:local": "yarn config set registry http://127.0.0.1:4873",
+    "set-registry:npm": "yarn config delete registry && npm config delete registry"
   },
   "repository": {
     "type": "git",
