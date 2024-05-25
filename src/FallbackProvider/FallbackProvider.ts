@@ -1,7 +1,8 @@
-import { BaseProvider, Network } from "@ethersproject/providers";
+import { Logger } from "@ethersproject/logger";
+import { BaseProvider, Network, WebSocketProvider } from "@ethersproject/providers";
 
 import { promiseWithTimeout, wait } from "../utils/promises";
-import { Logger } from "@ethersproject/logger";
+import { isWebSocketProvider } from "../utils/ws-util";
 
 export enum FallbackProviderError {
   NO_PROVIDER = "At least one provider must be provided",
@@ -24,7 +25,7 @@ const isProviderConfig = (provider: BaseProvider | ProviderConfig): provider is 
   (provider as ProviderConfig).provider !== undefined;
 
 export const validateAndGetNetwork = async (providers: (BaseProvider | ProviderConfig)[]) => {
-  const providerConfigs = providers.map(p => (isProviderConfig(p) ? p : { provider: p }));
+  const providerConfigs = providers.map((p) => (isProviderConfig(p) ? p : { provider: p }));
   if (providers.length === 0) throw new Error(FallbackProviderError.NO_PROVIDER);
 
   const networks = await Promise.all(
@@ -43,7 +44,7 @@ export const validateAndGetNetwork = async (providers: (BaseProvider | ProviderC
 
   const defaultNetwork = availableNetworks[0];
 
-  if (availableNetworks.find(n => n.chainId !== defaultNetwork.chainId))
+  if (availableNetworks.find((n) => n.chainId !== defaultNetwork.chainId))
     throw new Error(FallbackProviderError.INCONSISTENT_NETWORKS);
 
   return { network: defaultNetwork, providers: availableProviders };
@@ -71,27 +72,74 @@ export class FallbackProvider extends BaseProvider {
     providerIndex: number,
     method: string,
     params: { [name: string]: any },
-    retries = 0
+    retries = 0,
+    useFallback = true
   ): Promise<any> {
     const { provider, retries: maxRetries, timeout, retryDelay } = this._providers[providerIndex];
+
     try {
+      if (isWebSocketProvider(provider)) {
+        // Provider is a WebSocketProvider. Let's perform some additional checks.
+        const ready = (provider as WebSocketProvider)._wsReady;
+        const readyState = (provider as WebSocketProvider)._websocket.readyState;
+
+        if (readyState >= 2) {
+          // Closing or closed. Immediately fallback if possible.
+          logger.warn(`[FallbackProvider] Provider n°${providerIndex} websocket closed`);
+
+          if (providerIndex >= this._providers.length - 1) {
+            throw new Error(
+              `[FallbackProvider] Provider n°${providerIndex} websocket closed with no fallback available`
+            );
+          }
+
+          // We have another provider to fallback to.
+          return this.performWithProvider(providerIndex + 1, method, params);
+        }
+
+        if (!ready) {
+          // Provider is not ready. Fallback if possible.
+          if (providerIndex < this._providers.length - 1) {
+            logger.warn(
+              `[FallbackProvider] Provider n°${providerIndex} websocket not ready. Fallbacking to provider n°${
+                providerIndex + 1
+              }`
+            );
+
+            try {
+              return this.performWithProvider(providerIndex + 1, method, params);
+            } catch (e2) {
+              console.warn(`[FallbackProvider] Fallback failed: ${e2}`);
+            }
+          }
+        }
+
+        // If we're here, we failed to fallback and we know the websocket is not closed. Let's try sending the request
+        // to it below.
+
+        // We already tried to fallback, let's not do it again.
+        useFallback = false;
+      }
+
       return await promiseWithTimeout(provider.perform(method, params), timeout ?? DEFAULT_TIMEOUT);
     } catch (e) {
       if (retries < (maxRetries ?? DEFAULT_RETRIES)) {
         // Wait for a random time before retrying.
         const delay = Math.ceil(Math.random() * (retryDelay ?? RETRY_DELAY));
         logger.debug(
-          `[FallbackProvider] Call to \`${method}\` failing with provider n°${providerIndex}, retrying in ${delay}ms (${retries +
-            1}/${maxRetries}) \n\n${e}`
+          `[FallbackProvider] Call to \`${method}\` failing with provider n°${providerIndex}, retrying in ${delay}ms (${
+            retries + 1
+          }/${maxRetries}) \n\n${e}`
         );
         await wait(delay);
-        return this.performWithProvider(providerIndex, method, params, retries + 1);
+        return this.performWithProvider(providerIndex, method, params, retries + 1, useFallback);
       }
-      if (providerIndex >= this._providers.length - 1) throw e;
+      if (providerIndex >= this._providers.length - 1 || !useFallback) throw e;
 
       logger.warn(
-        `[FallbackProvider] Call to \`${method}\` failing with provider n°${providerIndex}, retrying with provider n°${providerIndex +
-          1}\n\n${e}`
+        `[FallbackProvider] Call to \`${method}\` failing with provider n°${providerIndex}, retrying with provider n°${
+          providerIndex + 1
+        }\n\n${e}`
       );
       return this.performWithProvider(providerIndex + 1, method, params);
     }
