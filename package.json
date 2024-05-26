@@ -37,10 +37,12 @@
   "homepage": "https://github.com/morpho-labs/ethers-fallback-provider#readme",
   "dependencies": {
     "@ethersproject/logger": "^5.7.0",
-    "@ethersproject/providers": "^5.7.0"
+    "@ethersproject/providers": "^5.7.0",
+    "await-timeout": "^1.1.1"
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
+    "@types/await-timeout": "^0.3.3",
     "@types/jest": "^29.5.1",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
