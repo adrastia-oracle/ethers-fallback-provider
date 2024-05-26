@@ -80,8 +80,7 @@ export class FallbackProvider extends BaseProvider {
     try {
       if (isWebSocketProvider(provider)) {
         // Provider is a WebSocketProvider. Let's perform some additional checks.
-        const ready = (provider as WebSocketProvider)._wsReady;
-        const readyState = (provider as WebSocketProvider)._websocket.readyState;
+        const readyState = (provider as WebSocketProvider).websocket.readyState;
 
         if (readyState >= 2) {
           // Closing or closed. Immediately fallback if possible.
@@ -97,8 +96,8 @@ export class FallbackProvider extends BaseProvider {
           return this.performWithProvider(providerIndex + 1, method, params);
         }
 
-        if (!ready) {
-          // Provider is not ready. Fallback if possible.
+        if (readyState !== 1) {
+          // Websocket still connecting. Fallback if possible.
           if (providerIndex < this._providers.length - 1) {
             logger.warn(
               `[FallbackProvider] Provider n°${providerIndex} websocket not ready. Fallbacking to provider n°${
@@ -107,18 +106,18 @@ export class FallbackProvider extends BaseProvider {
             );
 
             try {
-              return this.performWithProvider(providerIndex + 1, method, params);
+              return await this.performWithProvider(providerIndex + 1, method, params);
             } catch (e2) {
               console.warn(`[FallbackProvider] Fallback failed: ${e2}`);
             }
           }
+
+          // If we're here, we failed to fallback and we know the websocket is not closed. Let's try sending the request
+          // to it below.
+
+          // We already tried to fallback, let's not do it again.
+          useFallback = false;
         }
-
-        // If we're here, we failed to fallback and we know the websocket is not closed. Let's try sending the request
-        // to it below.
-
-        // We already tried to fallback, let's not do it again.
-        useFallback = false;
       }
 
       return await promiseWithTimeout(provider.perform(method, params), timeout ?? DEFAULT_TIMEOUT);
