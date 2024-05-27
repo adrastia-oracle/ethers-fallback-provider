@@ -893,6 +893,11 @@
     javascript-natural-sort "0.7.1"
     lodash "^4.17.21"
 
+"@types/await-timeout@^0.3.3":
+  version "0.3.3"
+  resolved "http://127.0.0.1:4873/@types/await-timeout/-/await-timeout-0.3.3.tgz#90ac71328061202dce11cda8a7ad4317d955340f"
+  integrity sha512-xed3pz+r3kzmQu03BEqRIR1YVW8jXluvlL/FgO0wTdySl14qDJKASEyDg7Ut+ufFROsoETxCiHYDjMhWPV3INg==
+
 "@types/babel__core@^7.1.14":
   version "7.20.0"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.0.tgz#61bc5a4cae505ce98e1e36c5445e4bee060d8891"
@@ -1184,6 +1189,11 @@ astral-regex@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/astral-regex/-/astral-regex-2.0.0.tgz#483143c567aeed4785759c0865786dc77d7d2e31"
   integrity sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==
+
+await-timeout@^1.1.1:
+  version "1.1.1"
+  resolved "http://127.0.0.1:4873/await-timeout/-/await-timeout-1.1.1.tgz#d42062ee6bc4eb271fe4d4f851eb658dae7e3906"
+  integrity sha512-gsDXAS6XVc4Jt+7S92MPX6Noq69bdeXUPEaXd8dk3+yVr629LTDLxNt4j1ycBbrU+AStK2PhKIyNIM+xzWMVOQ==
 
 babel-jest@^29.5.0:
   version "29.5.0"
